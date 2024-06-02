@@ -18,4 +18,8 @@
 
 ### Quickstart
 
--
+```zsh
+git clone https://github.com/tamermint/foundry-smart-contract-lottery-f24.git
+cd foundry-smart-contract-lottery-f24
+forge build
+```

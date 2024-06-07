@@ -7,6 +7,9 @@ import {Test, console} from "forge-std/Test.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 
 contract RaffleTest is Test {
+    /**EVENTS */
+    event EnteredRaffle(address indexed player); //have to redefine events as events are not structs that can be imported
+
     Raffle raffle;
     HelperConfig helperConfig;
     address public PLAYER = makeAddr("player");
@@ -34,5 +37,36 @@ contract RaffleTest is Test {
 
     function testRaffleInitializesInOpenState() public view {
         assert(raffle.getRaffleState() == Raffle.RaffleState.OPEN);
+    }
+
+    //Enter Raffle
+
+    function testRaffleFailsWhenYouDontPayEnough() public {
+        //Arrange
+        vm.prank(PLAYER);
+
+        vm.expectRevert(Raffle.Raffle__NotEnoughEthSent.selector); //the next line will revert
+        //Assert/Act
+        raffle.enterRaffle();
+    }
+
+    modifier funded() {
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_USER_BALANCE);
+        _;
+    }
+
+    function testRaffleRecordsPlayerWhenTheyEnter() public funded {
+        //Arrange
+        raffle.enterRaffle{value: entranceFee}();
+        address playerRecorded = raffle.getPlayer(0); //the prank and deal are scoped to this so whenever this unit test runs, its only the first player
+        //Assert
+        assert(playerRecorded == PLAYER);
+    }
+
+    function testRaffleEmitsEventOnEntrace() public funded {
+        vm.expectEmit(true, false, false, false, address(raffle));
+        emit EnteredRaffle(PLAYER);
+        raffle.enterRaffle{value: entranceFee}();
     }
 }

@@ -5,6 +5,7 @@ import {Script, console} from "../lib/forge-std/src/Script.sol";
 import {HelperConfig} from "../script/HelperConfig.s.sol";
 import {VRFCoordinatorV2Mock} from "@chainlink/contracts/v0.8/mocks/VRFCoordinatorV2Mock.sol";
 import {LinkToken} from "../test/mocks/LinkToken.sol";
+import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 
 contract CreateSubscription is Script {
     function createSubscriptionUsingConfig() public returns (uint64) {
@@ -84,5 +85,43 @@ contract FundSubscription is Script {
 
     function run() external {
         fundSubscriptionUsingConfig();
+    }
+}
+
+//now we create a contract to add a consumer
+contract AddConsumer is Script {
+    function addConsumer(
+        address raffle,
+        address vrfCoordinator,
+        uint64 subscriptionId
+    ) public {
+        console.log("Adding consumer contract: ", raffle);
+        console.log("Using VRF Coordinator: ", vrfCoordinator);
+        console.log("Using subscriptionId: ", subscriptionId);
+        console.log("On ChainID: ", block.chainid);
+        vm.startBroadcast();
+        VRFCoordinatorV2Mock(vrfCoordinator).addConsumer(
+            subscriptionId,
+            raffle
+        );
+        vm.stopBroadcast();
+    }
+
+    function addConsumerUsingConfig(address raffle) public {
+        //to add a consumer programmatically
+        HelperConfig helperConfig = new HelperConfig();
+        (, , address vrfCoordinator, , uint64 subscriptionId, , ) = helperConfig
+            .activeNetworkConfig();
+        addConsumer(raffle, vrfCoordinator, subscriptionId);
+    }
+
+    function run() external {
+        //need to get the most recent deployment - that will be the consumer
+        address raffle = DevOpsTools.get_most_recent_deployment(
+            "Raffle",
+            block.chainid
+        );
+
+        addConsumerUsingConfig(raffle);
     }
 }

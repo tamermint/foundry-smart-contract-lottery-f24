@@ -71,7 +71,7 @@ contract Raffle is VRFConsumerBaseV2 {
 
     /**EVENTS */
     event EnteredRaffle(address indexed player);
-    event WordsRequested(uint256 indexed requestid, uint32 numwords);
+    event WordsRequested(uint256 indexed requestid);
     event WordsReceived(uint256 requestId, uint256[] randomWords);
     event PickedWinner(address indexed player);
 
@@ -145,7 +145,7 @@ contract Raffle is VRFConsumerBaseV2 {
             i_callbackGasLimit,
             NUM_WORDS
         );
-        emit WordsRequested(s_requestId, NUM_WORDS);
+        emit WordsRequested(s_requestId);
         //2. Pick winner
     }
 

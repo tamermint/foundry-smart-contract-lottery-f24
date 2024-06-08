@@ -5,6 +5,7 @@ import {DeployRaffle} from "../../script/DeployRaffle.s.sol";
 import {Raffle} from "../../src/Raffle.sol";
 import {Test, console} from "forge-std/Test.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 contract RaffleTest is Test {
     /**EVENTS */
@@ -42,7 +43,9 @@ contract RaffleTest is Test {
         assert(raffle.getRaffleState() == Raffle.RaffleState.OPEN);
     }
 
-    //Enter Raffle
+    //////////////////////////////
+    //  ENTER RAFFLE /////////////
+    //////////////////////////////
 
     function testRaffleFailsWhenYouDontPayEnough() public {
         //Arrange
@@ -53,34 +56,110 @@ contract RaffleTest is Test {
         raffle.enterRaffle();
     }
 
-    modifier funded() {
+    modifier fundedAndTimePassed() {
         vm.prank(PLAYER);
         vm.deal(PLAYER, STARTING_USER_BALANCE);
+        raffle.enterRaffle{value: entranceFee}();
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
         _;
     }
 
-    function testRaffleRecordsPlayerWhenTheyEnter() public funded {
-        //Arrange
-        raffle.enterRaffle{value: entranceFee}();
+    function testRaffleRecordsPlayerWhenTheyEnter() public fundedAndTimePassed {
         address playerRecorded = raffle.getPlayer(0); //the prank and deal are scoped to this so whenever this unit test runs, its only the first player
         //Assert
         assert(playerRecorded == PLAYER);
     }
 
-    function testRaffleEmitsEventOnEntrace() public funded {
+    function testRaffleEmitsEventOnEntrace() public {
+        vm.prank(PLAYER);
+        vm.deal(PLAYER, STARTING_USER_BALANCE);
         vm.expectEmit(true, false, false, false, address(raffle));
         emit EnteredRaffle(PLAYER);
         raffle.enterRaffle{value: entranceFee}();
     }
 
-    function testCantEnterWhenRaffleIsCalculating() public funded {
-        raffle.enterRaffle{value: entranceFee}();
-        vm.warp(block.timestamp + interval + 1); //moves time forward in the chain and + 1 is just a sanity check
-        vm.roll(block.number + 1);
+    function testCantEnterWhenRaffleIsCalculating() public fundedAndTimePassed {
         raffle.performUpkeep("");
         vm.expectRevert(Raffle.Raffle__NotOpen.selector);
         vm.prank(PLAYER);
         vm.deal(PLAYER, STARTING_USER_BALANCE);
         raffle.enterRaffle{value: entranceFee}();
+    }
+
+    //////////////////////////////
+    //  CHECK UPKEEP /////////////
+    //////////////////////////////
+
+    function testCheckUpKeepReturnsFalseIfItHasNoBalance() public {
+        //Arrange
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        //Act
+        (bool upkeepNeeded, ) = raffle.checkUpKeep("");
+
+        //Assert
+        assert(!upkeepNeeded);
+    }
+
+    function testCheckUpKeepReturnsFalseIfRaffleNotOpen()
+        public
+        fundedAndTimePassed
+    {
+        //Arrange
+        raffle.performUpkeep("");
+
+        //Act
+        (bool upkeepNeeded, ) = raffle.checkUpKeep("");
+
+        //Assert
+        assert(!upkeepNeeded);
+    }
+
+    //////////////////////////////
+    //  PERFORM UPKEEP ///////////
+    //////////////////////////////
+
+    function testPerformUpkeepCanOnlyRunIfCheckUpKeepIsTrue()
+        public
+        fundedAndTimePassed
+    {
+        //Act/assert
+        raffle.performUpkeep("");
+    }
+
+    function testPerformUpkeepRevertsIfCheckUpKeepIsFalse() public {
+        //Arrange
+        uint256 currentBalance = 0;
+        uint256 numPlayers = 0;
+        uint256 raffleState = 0;
+        //Act/Assert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Raffle.Raffle__UpkeepNotNeeded.selector,
+                currentBalance,
+                numPlayers,
+                raffleState
+            )
+        );
+        raffle.performUpkeep("");
+    }
+
+    function testPerformUpkeepUpdatesRaffleStateAndEmitsRequestId()
+        public
+        fundedAndTimePassed
+    {
+        // Act
+        vm.recordLogs();
+        raffle.performUpkeep(""); //this emits the requestId
+        Vm.Log[] memory entries = vm.getRecordedLogs(); //this is a way to store logs in a special data structure
+        bytes32 requestId = entries[1].topics[1];
+
+        Raffle.RaffleState rState = raffle.getRaffleState();
+
+        // Assert
+        assert(uint256(requestId) > 0);
+        assert(uint256(rState) == 1);
     }
 }

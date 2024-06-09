@@ -25,6 +25,7 @@ contract RaffleTest is Test {
     uint64 subscriptionId;
     uint32 callbackGasLimit;
     address link;
+    uint256 deployerKey;
 
     function setUp() external {
         DeployRaffle deployer = new DeployRaffle();
@@ -36,7 +37,8 @@ contract RaffleTest is Test {
             gasLane,
             subscriptionId,
             callbackGasLimit,
-            link
+            link,
+            deployerKey
         ) = helperConfig.activeNetworkConfig();
     }
 

@@ -178,4 +178,55 @@ contract RaffleTest is Test {
             address(raffle)
         );
     }
+
+    //////////////////////////////
+    //  Complete Test of Raffle //
+    //////////////////////////////
+
+    function testFulfillRandomWordsPicksWinnerAndSendsMoney()
+        public
+        fundedAndTimePassed
+    {
+        //Arrange
+        uint256 additionalEntrants = 5; //emulating additional entrants to the lottery
+        uint256 startingIndex = 1; //starting index = 1 because 0 will give address 0 and it will not work because 1 person has already entered the Raffle
+
+        for (
+            uint256 i = startingIndex;
+            i < startingIndex + additionalEntrants;
+            i++
+        ) {
+            address player = address(uint160(i)); //generate addresses based off the number
+            //such as address(1), address(2)...
+            hoax(player, STARTING_USER_BALANCE);
+            raffle.enterRaffle{value: entranceFee}();
+        }
+
+        uint256 prize = entranceFee * (additionalEntrants + 1); //determine prize money
+
+        //now we need to be the chainlink vrf - request random words, fulfill and pick winner
+        //1. request random words
+        vm.recordLogs();
+        raffle.performUpkeep(""); //this emits the requestId
+        Vm.Log[] memory entries = vm.getRecordedLogs(); //this is a way to store logs in a special data structure
+        bytes32 requestId = entries[1].topics[1];
+
+        uint256 previousTimeStamp = raffle.getLastTimeStamp();
+
+        //2.Now we need to be the vrf coordinator
+        VRFCoordinatorV2Mock(vrfCoordinator).fulfillRandomWords(
+            uint256(requestId),
+            address(raffle)
+        );
+
+        // Assert
+        assert(uint256(raffle.getRaffleState()) == 0); //raffle should be open now
+        assert(raffle.getRecentWinner() != address(0)); //checks that we have a winner
+        assert(raffle.getLengthOfPlayers() == 0); //checks the length is reset after winner is picked
+        assert(previousTimeStamp < raffle.getLastTimeStamp()); //check timestamp is less than current
+        assert(
+            raffle.getRecentWinner().balance ==
+                STARTING_USER_BALANCE + prize - entranceFee
+        ); //check that the winner has been paid
+    }
 }

@@ -26,6 +26,7 @@ pragma solidity ^0.8.19;
 
 import {VRFCoordinatorV2Interface} from "@chainlink/contracts/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import {VRFConsumerBaseV2} from "@chainlink/contracts/v0.8/vrf/VRFConsumerBaseV2.sol";
+import {AutomationCompatibleInterface} from "@chainlink/contracts/v0.8/interfaces/AutomationCompatibleInterface.sol";
 
 /**
  * @title Smart Contract Lottery
@@ -33,7 +34,7 @@ import {VRFConsumerBaseV2} from "@chainlink/contracts/v0.8/vrf/VRFConsumerBaseV2
  * @notice Script to emulate a decentralised lottery
  * @dev Implements Chainlink VRFv2
  */
-contract Raffle is VRFConsumerBaseV2 {
+contract Raffle is VRFConsumerBaseV2, AutomationCompatibleInterface {
     /**CUSTOM ERRORS */
     error Raffle__NotEnoughEthSent();
     error Raffle__NotEnoughTimeHasPassed();
@@ -113,7 +114,7 @@ contract Raffle is VRFConsumerBaseV2 {
      * 4. Implicitly - subscription needs to be funded
      */
 
-    function checkUpKeep(
+    function checkUpkeep(
         //we are not importing the automation compatible so writing this differently
         bytes memory /*check Data*/
     ) public view returns (bool upkeepNeeded, bytes memory /* performData */) {
@@ -126,7 +127,7 @@ contract Raffle is VRFConsumerBaseV2 {
     }
 
     function performUpkeep(bytes calldata /* performData */) external {
-        (bool upkeepNeeded, ) = checkUpKeep("");
+        (bool upkeepNeeded, ) = checkUpkeep("");
         if (!upkeepNeeded) {
             revert Raffle__UpkeepNotNeeded(
                 address(this).balance,

@@ -99,7 +99,7 @@ contract RaffleTest is Test {
         vm.roll(block.number + 1);
 
         //Act
-        (bool upkeepNeeded, ) = raffle.checkUpKeep("");
+        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
 
         //Assert
         assert(!upkeepNeeded);
@@ -113,7 +113,7 @@ contract RaffleTest is Test {
         raffle.performUpkeep("");
 
         //Act
-        (bool upkeepNeeded, ) = raffle.checkUpKeep("");
+        (bool upkeepNeeded, ) = raffle.checkUpkeep("");
 
         //Assert
         assert(!upkeepNeeded);

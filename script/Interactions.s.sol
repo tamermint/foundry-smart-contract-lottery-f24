@@ -8,28 +8,29 @@ import {LinkToken} from "../test/mocks/LinkToken.sol";
 import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 
 contract CreateSubscription is Script {
-    function createSubscriptionUsingConfig() public returns (uint64) {
+    function createSubscriptionUsingConfig() public returns (uint64, address) {
         HelperConfig helperConfig = new HelperConfig();
-        (, , address vrfCoordinator, , , , , ) = helperConfig
+        (, , address vrfCoordinator, , , , , uint256 deployerKey) = helperConfig
             .activeNetworkConfig();
-        return createSubscription(vrfCoordinator);
+        return createSubscription(vrfCoordinator, deployerKey);
     }
 
     function createSubscription(
-        address vrfCoordinator
-    ) public returns (uint64) {
+        address vrfCoordinator,
+        uint256 deployerKey
+    ) public returns (uint64, address) {
         // Create a new subscription
         console.log("Creating subscription on chain id:", block.chainid);
-        vm.startBroadcast();
+        vm.startBroadcast(deployerKey);
         uint64 subId = VRFCoordinatorV2Mock(vrfCoordinator)
             .createSubscription();
         vm.stopBroadcast();
         console.log("Subscription created with id:", subId);
         console.log("Please update subscriptionId in HelperConfig.s.sol");
-        return subId;
+        return (subId, vrfCoordinator);
     }
 
-    function run() external returns (uint64) {
+    function run() external returns (uint64, address) {
         return createSubscriptionUsingConfig();
     }
 }
@@ -50,15 +51,16 @@ contract FundSubscription is Script {
             uint64 subscriptionId,
             ,
             address link,
-
+            uint256 deployerKey
         ) = helperConfig.activeNetworkConfig();
-        fundSubscription(vrfCoordinator, subscriptionId, link);
+        fundSubscription(vrfCoordinator, subscriptionId, link, deployerKey);
     }
 
     function fundSubscription(
         address vrfCoordinator,
         uint64 subId,
-        address link
+        address link,
+        uint256 deployerKey
     ) public {
         console.log("Funding subscription: ", subId);
         console.log("Using vrfCoordinator: ", vrfCoordinator);
@@ -66,7 +68,7 @@ contract FundSubscription is Script {
         console.log("Using ChainID: ", block.chainid);
         if (block.chainid == 31337) {
             //if on local chain
-            vm.startBroadcast();
+            vm.startBroadcast(deployerKey);
             VRFCoordinatorV2Mock(vrfCoordinator).fundSubscription(
                 subId,
                 FUND_AMOUNT

@@ -42,7 +42,7 @@ contract HelperConfig is Script {
             NetworkConfig({
                 entranceFee: 0.01 ether,
                 interval: 30,
-                vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
+                vrfCoordinator: 0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625,
                 gasLane: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
                 subscriptionId: 10741,
                 callbackGasLimit: 500000,
